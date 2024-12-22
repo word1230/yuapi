@@ -3,10 +3,7 @@ package com.yupi.project.controller;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.yupi.project.annotation.AuthCheck;
-import com.yupi.project.common.BaseResponse;
-import com.yupi.project.common.DeleteRequest;
-import com.yupi.project.common.ErrorCode;
-import com.yupi.project.common.ResultUtils;
+import com.yupi.project.common.*;
 import com.yupi.project.constant.CommonConstant;
 import com.yupi.project.exception.BusinessException;
 import com.yupi.project.model.dto.interfaceinfo.InterfaceInfoAddRequest;
@@ -17,8 +14,10 @@ import com.yupi.project.model.dto.interfaceinfo.InterfaceInfoQueryRequest;
 import com.yupi.project.model.dto.interfaceinfo.InterfaceInfoUpdateRequest;
 import com.yupi.project.model.entity.InterfaceInfo;
 import com.yupi.project.model.entity.User;
+import com.yupi.project.model.enums.InterfaceInfoGenderEnum;
 import com.yupi.project.service.InterfaceInfoService;
 import com.yupi.project.service.UserService;
+import com.yupi.yuapiclientsdk.client.YuAPiClient;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.BeanUtils;
@@ -29,7 +28,7 @@ import javax.servlet.http.HttpServletRequest;
 import java.util.List;
 
 /**
- * 帖子接口
+ * 接口接口
  *
  * @author yupi
  */
@@ -43,6 +42,9 @@ public class InterfaceInfoController {
 
     @Resource
     private UserService userService;
+
+    @Resource
+    private YuAPiClient yuapiClient;
 
     // region 增删改查
 
@@ -130,6 +132,93 @@ public class InterfaceInfoController {
         boolean result = interfaceInfoService.updateById(interfaceInfo);
         return ResultUtils.success(result);
     }
+    /**
+     * 上线接口
+     *
+     * @param idRequest
+     * @param request
+     * @return
+     */
+    @PostMapping("/online")
+    @AuthCheck(mustRole = "admin")
+    public BaseResponse<Boolean> onlineInterfaceInfo(@RequestBody IdRequest idRequest,
+                                                     HttpServletRequest request) {
+
+        // 1. 校验
+
+        //   id是否存在  是否可以调用
+        if (idRequest == null || idRequest.getId() <= 0) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+        }
+        Long id = idRequest.getId();
+        InterfaceInfo infoServiceById = interfaceInfoService.getById(id);
+        if (infoServiceById == null) {
+            throw new BusinessException(ErrorCode.NOT_FOUND_ERROR);
+        }
+
+        com.yupi.yuapiclientsdk.model.User user = new com.yupi.yuapiclientsdk.model.User();
+        user.setUsername("yuyuuyu");
+        String result = yuapiClient.getUserNameByPost(user);
+        if(StringUtils.isBlank(result)){
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR,"接口验证失败");
+        }
+
+
+        // 2. 修改状态
+        InterfaceInfo interfaceInfo = new InterfaceInfo();
+        interfaceInfo.setUserId(id);
+        interfaceInfo.setStatus(InterfaceInfoGenderEnum.Online.getValue());        //这里用枚举 避免硬编码
+        boolean resultupdate = interfaceInfoService.updateById(interfaceInfo);
+        return ResultUtils.success(resultupdate);
+    }
+
+
+    /**
+     * 下线接口
+     *
+     * @param interfaceInfoUpdateRequest
+     * @param request
+     * @return
+     */
+    @PostMapping("/offline")
+    @AuthCheck(mustRole = "admin")
+    public BaseResponse<Boolean> offlineInterfaceInfo(@RequestBody IdRequest idRequest,
+                                                     HttpServletRequest request) {
+
+        // 1. 校验
+
+        //   id是否存在  是否可以调用
+        if (idRequest == null || idRequest.getId() <= 0) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+        }
+        Long id = idRequest.getId();
+        InterfaceInfo infoServiceById = interfaceInfoService.getById(id);
+        if (infoServiceById == null) {
+            throw new BusinessException(ErrorCode.NOT_FOUND_ERROR);
+        }
+
+        com.yupi.yuapiclientsdk.model.User user = new com.yupi.yuapiclientsdk.model.User();
+        user.setUsername("yuyuuyu");
+        String result = yuapiClient.getUserNameByPost(user);
+        if(StringUtils.isBlank(result)){
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR,"接口验证失败");
+        }
+
+
+        // 2. 修改状态
+        InterfaceInfo interfaceInfo = new InterfaceInfo();
+        interfaceInfo.setUserId(id);
+        interfaceInfo.setStatus(InterfaceInfoGenderEnum.Offline.getValue());        //这里用枚举 避免硬编码
+        boolean resultupdate = interfaceInfoService.updateById(interfaceInfo);
+        return ResultUtils.success(resultupdate);
+    }
+
+
+
+
+
+
+
 
     /**
      * 根据 id 获取
